@@ -1,0 +1,15 @@
+---
+- name: Make the location for the persistent volume
+  file: path=/opt/games state=directory owner=nbd group=nbd mode=0755
+
+- name: Create the persistent volume
+  command: dd if=/dev/zero of=/opt/games/games.img bs=1G count={{ vol_GBs}} creates=/opt/games/games.img
+  register: persistVol
+
+- name: Create a filesystem on the volume
+  shell: echo "y\n" | mkfs.ext4 /opt/games/games.img
+  when: persistVol.changed
+
+- name: Attach the persistVol to a home folder
+  command: mount /opt/games/games.img /home/{{ game_user }}
+  when: persistVol.changed

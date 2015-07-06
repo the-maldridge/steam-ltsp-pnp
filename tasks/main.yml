@@ -1,0 +1,23 @@
+---
+- name: Create the gaming user
+  user: name={{ game_user }} password={{ game_pass }} state=present
+
+- include: persistVol.yml
+
+- name: Explain why we are holding
+  debug: msg="Because of steam limitations, you need to manually install it, log in as the gaming user and then add your games"
+  when: persistVol.changed
+
+- name: Break until the user comes back
+  pause: prompt="Go install steam; press [ENTER] when done"
+  when: persistVol.changed
+
+- name: Unmount the virtual disk
+  command: umount /home/{{ game_user }}
+  when: persistVol.changed
+
+- name: Configure nbd to serve the persistent volume
+  copy: src=persistVol.conf dest=/etc/nbd-server/conf.d/persistVol.conf owner=root group=root mode=0644
+
+- name: Configure the client to use the persistent volume
+  template: src=lts.conf dest=/var/lib/tftpboot/ltsp/amd64/lts.conf owner=root group=root mode=0644
